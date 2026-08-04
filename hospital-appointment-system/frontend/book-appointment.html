@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Appointment - Hospital Appointment System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="brand"> Hospital App</a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="doctors.html">Doctors</a></li>
+            <li><a href="appointments.html">My Appointments</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="card" style="max-width: 600px; margin: 0 auto;">
+            <h2> Book an Appointment</h2>
+            
+            <div id="message" class="alert" style="display: none;"></div>
+
+            <form onsubmit="bookAppointment(event)">
+                <div class="form-group">
+                    <label for="doctorId">Select Doctor</label>
+                    <select id="doctorId" required>
+                        <option value="">Loading doctors...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="appointmentDate">Appointment Date</label>
+                    <input type="date" id="appointmentDate" required min="">
+                </div>
+
+                <div class="form-group">
+                    <label for="appointmentTime">Appointment Time</label>
+                    <select id="appointmentTime" required>
+                        <option value="">Select time...</option>
+                        <option value="09:00:00">09:00 AM</option>
+                        <option value="09:30:00">09:30 AM</option>
+                        <option value="10:00:00">10:00 AM</option>
+                        <option value="10:30:00">10:30 AM</option>
+                        <option value="11:00:00">11:00 AM</option>
+                        <option value="11:30:00">11:30 AM</option>
+                        <option value="13:00:00">01:00 PM</option>
+                        <option value="13:30:00">01:30 PM</option>
+                        <option value="14:00:00">02:00 PM</option>
+                        <option value="14:30:00">02:30 PM</option>
+                        <option value="15:00:00">03:00 PM</option>
+                        <option value="15:30:00">03:30 PM</option>
+                        <option value="16:00:00">04:00 PM</option>
+                        <option value="16:30:00">04:30 PM</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block">Book Appointment</button>
+            </form>
+
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <a href="appointments.html" class="btn btn-secondary">View My Appointments</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/appointments.js"></script>
+    <script>
+        // Set min date to today
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('appointmentDate');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('min', today);
+            dateInput.value = today;
+        });
+
+        // Check auth and load doctors
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isLoggedIn = await checkAuthStatus();
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Load doctors for dropdown
+            await loadDoctorsForBooking();
+        });
+    </script>
+</body>
+</html>

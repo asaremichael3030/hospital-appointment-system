@@ -1,0 +1,31 @@
+{
+  "name": "hospital-appointment-system",
+  "version": "1.0.0",
+  "description": "A complete Hospital Appointment System for patients and admins",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
+  },
+  "keywords": [
+    "hospital",
+    "appointment",
+    "healthcare",
+    "fullstack"
+  ],
+  "author": "Michael Asare",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^9.0.3",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

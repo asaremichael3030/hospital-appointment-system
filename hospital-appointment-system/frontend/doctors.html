@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctors - Hospital Appointment System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="brand"> Hospital App</a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="doctors.html" class="active">Doctors</a></li>
+            <li><a href="appointments.html">My Appointments</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="flex-between" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <h1> Our Doctors</h1>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <input type="text" id="searchInput" placeholder="Search by name or specialty..." style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 250px;">
+                <button class="btn btn-primary" onclick="searchDoctors()">Search</button>
+                <button class="btn btn-secondary" onclick="loadDoctors()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Admin Controls -->
+        <div id="adminControls" style="display: none; margin-bottom: 1rem;">
+            <button class="btn btn-success" onclick="showAddDoctorForm()">+ Add New Doctor</button>
+        </div>
+
+        <!-- Add Doctor Form -->
+        <div id="addDoctorForm" class="card" style="display: none;">
+            <h2> Add New Doctor</h2>
+            <div id="addMessage" class="alert" style="display: none;"></div>
+            <form id="addDoctorFormElement" onsubmit="handleAddDoctor(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="docFullname">Full Name</label>
+                        <input type="text" id="docFullname" placeholder="Dr. John Smith" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="docSpecialty">Specialty</label>
+                        <input type="text" id="docSpecialty" placeholder="Cardiology" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="docPhone">Phone</label>
+                        <input type="text" id="docPhone" placeholder="555-0101" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="docEmail">Email</label>
+                        <input type="email" id="docEmail" placeholder="doctor@hospital.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="docDays">Available Days</label>
+                    <input type="text" id="docDays" placeholder="Mon, Wed, Fri" required>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-success" id="submitDoctorBtn">Add Doctor</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideAddDoctorForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Doctors List -->
+        <div id="doctorsList">
+            <div class="grid" id="doctorsGrid">
+                <p style="color: #666; grid-column: 1 / -1; text-align: center;">Loading doctors...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/doctors.js"></script>
+    <script>
+        // Page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Doctors page loaded');
+
+            const token = localStorage.getItem('token');
+            const user = getCurrentUser();
+
+            if (!token || !user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (user && user.role === 'admin') {
+                document.getElementById('adminControls').style.display = 'block';
+            }
+
+            await loadDoctors();
+        });
+
+        // Show add doctor form
+        function showAddDoctorForm() {
+            document.getElementById('addDoctorForm').style.display = 'block';
+            document.getElementById('addDoctorForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Hide add doctor form
+        function hideAddDoctorForm() {
+            document.getElementById('addDoctorForm').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

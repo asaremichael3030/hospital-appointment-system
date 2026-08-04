@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test API</title></head>
+<body>
+    <h1>API Test</h1>
+    <button onclick="testAPI()">Test API</button>
+    <pre id="result"></pre>
+
+    <script>
+    function testAPI() {
+        fetch('http://localhost:5000/api/health')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(err => {
+                document.getElementById('result').textContent = 'Error: ' + err.message;
+            });
+    }
+    </script>
+</body>
+</html>

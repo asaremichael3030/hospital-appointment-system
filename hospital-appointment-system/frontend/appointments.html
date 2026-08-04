@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Appointments - Hospital Appointment System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="brand"> Hospital App</a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="doctors.html">Doctors</a></li>
+            <li><a href="appointments.html" class="active">My Appointments</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="flex-between" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <h1> My Appointments</h1>
+            <a href="book-appointment.html" class="btn btn-success">+ Book New Appointment</a>
+        </div>
+
+        <div id="appointmentsList" class="card">
+            <p style="color: #666;">Loading your appointments...</p>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/appointments.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isLoggedIn = await checkAuthStatus();
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
+            await loadAppointments();
+        });
+    </script>
+</body>
+</html>

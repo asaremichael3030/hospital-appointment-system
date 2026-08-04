@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Appointment System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="brand"> Hospital App</a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="doctors.html">Doctors</a></li>
+            <li><a href="appointments.html">My Appointments</a></li>
+            <li><a href="login.html" id="loginNav">Login</a></li>
+            <li><a href="register.html" id="registerNav">Register</a></li>
+            <li><a href="#" id="logoutNav" style="display:none;" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="card text-center" style="padding: 3rem;">
+            <h1> Welcome to the Hospital Appointment System</h1>
+            <p style="font-size: 1.2rem; color: #666; margin: 1.5rem 0;">
+                Book appointments with top doctors easily and manage your healthcare
+            </p>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="register.html" class="btn btn-primary">Get Started</a>
+                <a href="doctors.html" class="btn btn-success">View Doctors</a>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="doctor-card">
+                <h3> Find Doctors</h3>
+                <p>Browse through our list of qualified doctors by specialty</p>
+            </div>
+            <div class="doctor-card" style="border-left-color: #2ecc71;">
+                <h3>Book Appointments</h3>
+                <p>Schedule appointments at your convenience with just a few clicks</p>
+            </div>
+            <div class="doctor-card" style="border-left-color: #e74c3c;">
+                <h3>Manage Health</h3>
+                <p>View and cancel appointments, stay on top of your health</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Update navigation based on login status
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+        });
+    </script>
+</body>
+</html>

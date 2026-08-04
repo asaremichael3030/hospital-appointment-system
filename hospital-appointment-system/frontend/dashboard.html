@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Hospital Appointment System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="brand"> Hospital App</a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="doctors.html">Doctors</a></li>
+            <li><a href="appointments.html">My Appointments</a></li>
+            <li id="adminNavLink" style="display: none;"><a href="admin-appointments.html">Manage Appointments</a></li>
+            <li><a href="change-password.html" class="btn btn-warning">Change Password</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div id="authMessage" class="alert alert-error" style="display: none;"></div>
+
+        <div class="card">
+            <div class="flex-between">
+                <h2>Welcome, <span id="userName">User</span>!</h2>
+                <span class="badge badge-approved" id="userRole">Patient</span>
+            </div>
+            <p style="color: #666; margin-top: 0.5rem;">Email: <span id="userEmail">user@example.com</span></p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid">
+            <div class="doctor-card" style="border-left-color: #3498db;">
+                <h3> Total Doctors</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: #3498db;" id="totalDoctors">0</p>
+                <p>Available to consult</p>
+            </div>
+            <div class="doctor-card" style="border-left-color: #2ecc71;">
+                <h3>My Appointments</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: #2ecc71;" id="totalAppointments">0</p>
+                <p>Upcoming appointments</p>
+            </div>
+            <div class="doctor-card" style="border-left-color: #f39c12;">
+                <h3> Pending</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: #f39c12;" id="pendingAppointments">0</p>
+                <p>Awaiting approval</p>
+            </div>
+            <!-- Admin Only: Pending Requests -->
+            <div class="doctor-card" style="border-left-color: #e74c3c;" id="adminPendingCard" style="display: none;">
+                <h3> Pending Requests</h3>
+                <p style="font-size: 2rem; font-weight: bold; color: #e74c3c;" id="adminPendingCount">0</p>
+                <p>Appointments waiting for approval</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <h2> Quick Actions</h2>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+                <a href="doctors.html" class="btn btn-primary">View All Doctors</a>
+                <a href="book-appointment.html" class="btn btn-success">Book Appointment</a>
+                <a href="appointments.html" class="btn btn-warning">My Appointments</a>
+                <!-- Admin Only: Manage Appointments -->
+                <a href="admin-appointments.html" class="btn btn-danger" id="adminManageBtn" style="display: none;">Manage All Appointments</a>
+            </div>
+        </div>
+
+        <!-- Recent Appointments -->
+        <div class="card">
+            <h2>Recent Appointments</h2>
+            <div id="recentAppointments">
+                <p style="color: #666;">Loading your appointments...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/appointments.js"></script>
+    <script>
+        // ============================================
+        // GET AUTH HEADERS
+        // ============================================
+        function getAuthHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        // ============================================
+        // DASHBOARD LOAD
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Dashboard page loaded');
+
+            const token = localStorage.getItem('token');
+            const user = getCurrentUser();
+
+            if (!token || !user) {
+                console.log(' No token or user found, redirecting to login...');
+                document.getElementById('authMessage').textContent = 'Please login first';
+                document.getElementById('authMessage').style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
+
+            // Check if user is admin
+            const isAdmin = user.role === 'admin';
+            console.log('Is admin:', isAdmin);
+
+            if (isAdmin) {
+                // Show admin elements
+                document.getElementById('adminNavLink').style.display = 'inline-block';
+                document.getElementById('adminManageBtn').style.display = 'inline-block';
+                document.getElementById('adminPendingCard').style.display = 'block';
+                console.log('Admin controls shown');
+            }
+
+            // Verify token with server
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/me', {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Token verified, user:', data.user);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    displayUserInfo(data.user);
+                    await loadDashboardStats();
+                } else {
+                    console.log('Token invalid, redirecting to login...');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('session_active');
+                    document.getElementById('authMessage').textContent = 'Session expired. Please login again.';
+                    document.getElementById('authMessage').style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                if (user) {
+                    console.log(' Server unreachable, using cached user');
+                    displayUserInfo(user);
+                    await loadDashboardStats();
+                } else {
+                    window.location.href = 'login.html';
+                }
+            }
+        });
+
+        function displayUserInfo(user) {
+            if (!user) return;
+            document.getElementById('userName').textContent = user.fullname;
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userRole').textContent = user.role.toUpperCase();
+            console.log('User info displayed:', user.fullname);
+        }
+
+        async function loadDashboardStats() {
+            console.log(' Loading dashboard stats...');
+
+            try {
+                const user = getCurrentUser();
+                const isAdmin = user && user.role === 'admin';
+
+                // Get all doctors
+                const doctorsRes = await fetch('http://localhost:5000/api/doctors', {
+                    headers: getAuthHeaders()
+                });
+                const doctors = await doctorsRes.json();
+
+                if (doctors.doctors) {
+                    document.getElementById('totalDoctors').textContent = doctors.doctors.length;
+                }
+
+                // Get user's appointments
+                const appointmentsRes = await fetch('http://localhost:5000/api/appointments', {
+                    headers: getAuthHeaders()
+                });
+                const appointments = await appointmentsRes.json();
+
+                if (appointments.appointments) {
+                    const total = appointments.appointments.length;
+                    const pending = appointments.appointments.filter(a => a.status === 'pending').length;
+
+                    document.getElementById('totalAppointments').textContent = total;
+                    document.getElementById('pendingAppointments').textContent = pending;
+
+                    // If admin, get all pending appointments
+                    if (isAdmin) {
+                        try {
+                            const adminRes = await fetch('http://localhost:5000/api/appointments/admin', {
+                                headers: getAuthHeaders()
+                            });
+                            const adminData = await adminRes.json();
+                            if (adminData.appointments) {
+                                const allPending = adminData.appointments.filter(a => a.status === 'pending').length;
+                                document.getElementById('adminPendingCount').textContent = allPending;
+                                console.log(' Total pending appointments (all):', allPending);
+                            }
+                        } catch (adminError) {
+                            console.log('Could not fetch admin appointments:', adminError.message);
+                        }
+                    }
+
+                    // Show recent appointments
+                    const recent = appointments.appointments.slice(0, 3);
+                    const container = document.getElementById('recentAppointments');
+
+                    if (recent.length === 0) {
+                        container.innerHTML = '<p style="color: #666;">No appointments yet. <a href="book-appointment.html">Book one now!</a></p>';
+                    } else {
+                        let html = '<div class="table-container"><table><thead><tr><th>Doctor</th><th>Date</th><th>Time</th><th>Status</th></tr></thead><tbody>';
+                        for (const apt of recent) {
+                            const statusClass = apt.status === 'pending' ? 'badge-pending' : apt.status === 'approved' ? 'badge-approved' : 'badge-cancelled';
+                            html += `<tr>
+                                <td>${apt.doctor_name || 'Doctor'}</td>
+                                <td>${new Date(apt.appointment_date).toLocaleDateString()}</td>
+                                <td>${apt.appointment_time}</td>
+                                <td><span class="badge ${statusClass}">${apt.status}</span></td>
+                            </tr>`;
+                        }
+                        html += '</tbody></table></div>';
+                        container.innerHTML = html;
+                    }
+                }
+
+                console.log('Dashboard stats loaded successfully!');
+
+            } catch (error) {
+                console.error(' Error loading dashboard stats:', error);
+                document.getElementById('recentAppointments').innerHTML = '<p style="color: #e74c3c;">Error loading appointments. Please refresh.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

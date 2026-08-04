@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Manage Appointments</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="brand"> Hospital App</a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="doctors.html">Doctors</a></li>
+            <li><a href="appointments.html">My Appointments</a></li>
+            <li><a href="admin-appointments.html" class="active">Manage Appointments</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="flex-between" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <h1>Manage All Appointments</h1>
+            <span class="badge badge-pending" id="pendingCountBadge">Pending: 0</span>
+        </div>
+        <p style="color: #666; margin-bottom: 1.5rem;">View and manage all patient appointments</p>
+
+        <!-- Filter Buttons -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="loadAllAppointments('all')">All</button>
+            <button class="btn btn-warning" onclick="loadAllAppointments('pending')">Pending</button>
+            <button class="btn btn-success" onclick="loadAllAppointments('approved')">Approved</button>
+            <button class="btn btn-danger" onclick="loadAllAppointments('cancelled')">Cancelled</button>
+        </div>
+
+        <div id="appointmentsList" class="card">
+            <p style="color: #666;">Loading appointments...</p>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        // ============================================
+        // GET AUTH HEADERS
+        // ============================================
+        function getAuthHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        // ============================================
+        // LOAD ALL APPOINTMENTS
+        // ============================================
+        async function loadAllAppointments(filter = 'all') {
+            const container = document.getElementById('appointmentsList');
+            container.innerHTML = '<p style="color: #666;">Loading appointments...</p>';
+
+            try {
+                const token = localStorage.getItem('token');
+                const user = getCurrentUser();
+
+                if (!token || !user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                if (user.role !== 'admin') {
+                    container.innerHTML = '<p style="color: #e74c3c;">⚠️ Admin access required.</p>';
+                    return;
+                }
+
+                const response = await fetch(`${API_URL}/appointments/admin`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('session_active');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch appointments');
+                }
+
+                const data = await response.json();
+                displayAppointments(data.appointments || [], filter);
+
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+                container.innerHTML = `
+                    <p style="color: #e74c3c;">Error loading appointments.</p>
+                    <p style="color: #666; font-size: 0.9rem;">${error.message}</p>
+                `;
+            }
+        }
+
+        // ============================================
+        // DISPLAY APPOINTMENTS
+        // ============================================
+        function displayAppointments(appointments, filter = 'all') {
+            const container = document.getElementById('appointmentsList');
+
+            // Filter appointments
+            let filtered = appointments;
+            if (filter !== 'all') {
+                filtered = appointments.filter(a => a.status === filter);
+            }
+
+            // Update pending count badge
+            const pendingCount = appointments.filter(a => a.status === 'pending').length;
+            document.getElementById('pendingCountBadge').textContent = `Pending: ${pendingCount}`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p style="color: #666;">No ${filter !== 'all' ? filter : ''} appointments found.</p>`;
+                return;
+            }
+
+            let html = '<div class="table-container"><table><thead><tr>';
+            html += '<th>Patient</th><th>Doctor</th><th>Date</th><th>Time</th><th>Status</th><th>Action</th>';
+            html += '</tr></thead><tbody>';
+
+            filtered.forEach(apt => {
+                const statusClass = apt.status === 'pending' ? 'badge-pending' : 
+                                   apt.status === 'approved' ? 'badge-approved' : 'badge-cancelled';
+                
+                html += `<tr>
+                    <td>${apt.patient_name || 'Patient'}</td>
+                    <td>${apt.doctor_name || 'Doctor'}</td>
+                    <td>${new Date(apt.appointment_date).toLocaleDateString()}</td>
+                    <td>${apt.appointment_time}</td>
+                    <td><span class="badge ${statusClass}">${apt.status}</span></td>
+                    <td>
+                        ${apt.status === 'pending' ? `
+                            <button onclick="approveAppointment(${apt.id})" class="btn btn-success btn-sm">Approve</button>
+                            <button onclick="rejectAppointment(${apt.id})" class="btn btn-danger btn-sm">Reject</button>
+                        ` : apt.status === 'approved' ? `
+                            <span style="color: #27ae60;">✓ Approved</span>
+                        ` : `
+                            <span style="color: #e74c3c;">✗ Cancelled</span>
+                        `}
+                    </td>
+                </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // APPROVE APPOINTMENT
+        // ============================================
+        async function approveAppointment(appointmentId) {
+            if (!confirm('Approve this appointment?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/appointments/${appointmentId}/approve`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders()
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('session_active');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Appointment approved!');
+                    loadAllAppointments('pending');
+                } else {
+                    alert(' ' + (data.error || 'Failed to approve appointment'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // ============================================
+        // REJECT APPOINTMENT
+        // ============================================
+        async function rejectAppointment(appointmentId) {
+            if (!confirm('Reject this appointment?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/appointments/${appointmentId}/reject`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders()
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('session_active');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Appointment rejected!');
+                    loadAllAppointments('pending');
+                } else {
+                    alert(' ' + (data.error || 'Failed to reject appointment'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // ============================================
+        // PAGE LOAD
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log(' Admin Appointments page loaded');
+
+            const token = localStorage.getItem('token');
+            const user = getCurrentUser();
+
+            if (!token || !user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (user.role !== 'admin') {
+                document.getElementById('appointmentsList').innerHTML = 
+                    '<p style="color: #e74c3c;"> Admin access required. Please login as admin.</p>';
+                return;
+            }
+
+            await loadAllAppointments('all');
+        });
+    </script>
+</body>
+</html>
